@@ -1,6 +1,8 @@
 # 📦 TerraPaySDK
 
-TerraPaySDK is a lightweight and customizable SDK that allows seamless integration of TerraPay wallet services into your Android app. It provides support for linking PayPal wallet, top-up, and withdrawal flows with configurable UI elements like wallet branding and color themes.
+TerraPaySDK is a lightweight and customizable SDK that allows seamless integration of TerraPay
+wallet services into your Android app. It provides support for linking PayPal wallet, top-up, and
+withdrawal flows with configurable UI elements like wallet branding and color themes.
 
 ## 🚀 Features
 
@@ -12,23 +14,23 @@ TerraPaySDK is a lightweight and customizable SDK that allows seamless integrati
 ## 📲 Requirements
 
 - Android Studio
-- AGP 8.5.0
+- AGP 8.13.0
+- minSdk = 24
 - compileSdk 35
+- targetSdk = 35
 
 ## 🔧 Installation
 
 1. Create or open an Android project.
 2. Copy the `terrapaypaypalsdk-release.aar` file from the sources folder.
 3. Create a `libs` folder under the app root folder and place the `.aar` file inside.
-
    ```
    TerraPaySDK/
        └── app
            └── libs
                └── terrapaypaypalsdk-release.aar
    ```
-
-4. Add the following dependencies in `build.gradle`:
+4. Add the following updated version dependencies in `build.gradle`:
 
    ```gradle
    implementation(files("libs/terrapaypaypalsdk-release.aar"))
@@ -41,6 +43,7 @@ TerraPaySDK is a lightweight and customizable SDK that allows seamless integrati
    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7")
    implementation("androidx.navigation:navigation-compose:2.8.9")
    implementation("io.github.grizzi91:bouquet:1.1.2")
+   implementation("androidx.webkit:webkit:1.11.0")
    implementation("com.squareup.retrofit2:converter-gson:2.11.0")
    implementation("com.google.code.gson:gson:2.11.0")
    implementation("junit:junit:4.13.2")
@@ -66,76 +69,126 @@ TerraPaySDK is a lightweight and customizable SDK that allows seamless integrati
    implementation("com.intuit.ssp:ssp-android:1.1.1")
    implementation("androidx.browser:browser:1.8.0")
    ```
-
+   
 ## 🛠️ Usage
+```kotlin
+## params validation should be like below
+@param context The Android context, ComponentActivity - typically an Activity or Application context.
+@param walletName-	Must not be empty
+@param dialCode - Must match the pattern ^\+\d+$
+@param countryCode - Must be a valid ISO 3166-1 alpha-2 country code
+@param msisdn - Must contain only digits; length validated against country-specific rules
+@param email - Must be a valid email address when not empty
+@param currency - Must be a valid ISO 4217 currency code
+@param primaryColor-	Must be a valid 6-digit hex code (e.g., EC1B24)
+@param secondaryColor-	Must be a valid 6-digit hex code(e.g., FFFFFF) 
+@param termsConditionsUrl - must be valid terms & conditions url or keep empty 
+```
 
 ### 1. Initialize and Configure - Compose
 
 ```kotlin
-if (initializeSdk) {
-    TerraPay.init(
-        owner = activity,
-        context = context,
-        walletName = "Airtel Wallet",
-        msisdn = "+254792474539",
-        walletLogo = null,
-        primaryColor = "EC1B24",
-        secondaryColor = "FFFFFF",
-        topUpLabel = "Top-up",
-        withdrawLabel = "Withdrawal",
-        onInitializeStart = {
-            // Show progress until linking happens in the background
-        }
-    ) { success, response, message ->
-        if (success) {
+
+val context = LocalContext.current
+val activity = LocalActivity.current as ComponentActivity
+
+if (showBottomSheet) {
+   // Configure SDK
+   val config = TerraPayConfig(
+      walletName = "Airtel Money Wallet",
+      dialCode = "+254",
+      countryCode = "KE",
+      msisdn = "783453672",
+      currency = "KES",
+      email = "gajendra@gmail.com",
+      primaryColor = "EC1B24",
+      secondaryColor = "FFFFFF",
+      addMoneyLabel = "Top Up",
+      getMoneyLabel = "Withdraw",
+      termsConditionsUrl="https://www.terrapay.com/termsconditions/"
+   )
+   TerraPayClient.init(
+      activity = activity,
+      context = context,
+      config = config,
+      onInitializeStart = {
+         showProgressDialog = true
+      }
+   ) { result ->
+      showProgressDialog = false
+      when (result) {
+         is TerraPayResult.Success -> {
+            print("Success: ${result.message}")
             launchSdk = true
-        } else {
-            // Show the proper error message returned
-        }
-    }
+         }
+         is TerraPayResult.Cancelled -> {
+            print("User cancelled: ${result.message}")
+            showErrorDialog = "${result.message}"
+         }
+         is TerraPayResult.Error -> {
+            showErrorDialog = "${result.error.errorCode}\n ${result.error.message}"
+         }
+      }
+   }
 }
 
 if (launchSdk) {
-    LaunchTerraPaySDK(activity, true) {
-        onDismiss()
-    }
+      TerraPayClient.LaunchTerraPaySDK(activity, "Airtel Money Wallet") {
+         launchTerrapaySdk = false
+      }
 }
+
 ```
 
-### 2. Initialize and Configure - Views
+### 2. Initialize and Configure - XML(View)
 
 ```kotlin
+
 val activity = this as ComponentActivity
-findViewById<MaterialButton>(R.id.launch_sdk).setOnClickListener {
-    TerraPay.init(
-        owner = activity,
+val config =TerraPayConfig(
+    walletName = "Airtel Money Wallet",
+    dialCode = "+254",
+    countryCode = "KE",
+    msisdn = "783453672",
+    currency = "KES",
+    email = "gajendra@gmail.com",
+    primaryColor = "EC1B24",
+    secondaryColor = "FFFFFF",
+    addMoneyLabel = "Top Up",
+    getMoneyLabel = "Withdraw",
+   termsConditionsUrl="https://www.terrapay.com/termsconditions/"
+)
+findViewById<Button>(R.id.button).text = "Launch SDK"
+findViewById<Button>(R.id.button).setOnClickListener {
+   TerraPayClient.init(
+        activity = activity,
         context = this,
-        walletName = "Airtel Wallet",
-        msisdn = "+254792474545",
-        walletLogo = null,
-        primaryColor = "EC1B24",
-        secondaryColor = "FFFFFF",
-        topUpLabel = "Add Money",
-        withdrawLabel = "Get Money",
+        config = config,
         onInitializeStart = {
-            // Show progress until linking happens in the background
+            findViewById<ProgressBar>(R.id.progress).visibility = View.VISIBLE
         },
-    ) { success, linkUserResponse, message ->
-        if (success) {
-            TerraPay.launchTerraPaySDK(this, linkUserResponse)
-        } else {
-            // Show the proper error message
+    ) { result ->
+        findViewById<ProgressBar>(R.id.progress).visibility = View.GONE
+        when (result) {
+            is TerraPayResult.Success -> {
+               TerraPayClient.launchTerraPaySDK(this)
+            }
+            is TerraPayResult.Cancelled -> {
+                showDialog(this, "User cancelled:", result.message)
+            }
+            is TerraPayResult.Error -> {
+                showDialog(this, "Error:", result.error.message ?: "Unknown error")
+            }
+
         }
     }
 }
 ```
 
 ## 🔐 License
-
-This SDK is proprietary and intended for internal or authorized use only. For licensing, contact TerraPay.
+This SDK is proprietary and intended for internal or authorized use only. For licensing, contact
+TerraPay.
 
 ## 📬 Contact
-
-For support or inquiries, email: support@terrapay.com
-
+For support or inquiries, email: technology_mobile_apps@terrapay.com
 ---

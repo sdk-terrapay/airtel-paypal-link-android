@@ -8,6 +8,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.google.android.material.button.MaterialButton
 import com.terrapay.terrapaypaypalsdk.api.TerraPay
+import com.terrapay.terrapaypaypalsdk.api.TerraPayResult
 
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -21,25 +22,50 @@ class MainActivity : AppCompatActivity() {
         }
 
         val activity = this as ComponentActivity
-        findViewById<MaterialButton>(R.id.launch_sdk).setOnClickListener {
-            TerraPay.init(
-                owner = activity,
+        val config = com.terrapay.terrapaypaypalsdk.api.TerraPayConfig(
+            walletName = "Airtel Money Wallet",
+            dialCode = "+254",
+            countryCode = "KE",
+            msisdn = "783453672",
+            currency = "KES",
+            email = "gajendra@gmail.com",
+            primaryColor = "EC1B24",
+            secondaryColor = "FFFFFF",
+            addMoneyLabel = "Top Up",
+            getMoneyLabel = "Withdraw",
+            termsConditionsUrl=""
+        )
+        findViewById<Button>(R.id.button).text = "Launch SDK"
+        findViewById<Button>(R.id.button).setOnClickListener {
+            TerraPayClient.init(
+                activity = activity,
                 context = this,
-                walletName = "Airtel Wallet",
-                msisdn = "+254792474545",
-                walletLogo = null,
-                primaryColor = "EC1B24",
-                secondaryColor = "FFFFFF",
-                topUpLabel = "Add Money",
-                withdrawLabel = "Get Money",
+                config = config,
                 onInitializeStart = {
-
+                    findViewById<ProgressBar>(R.id.progress).visibility=View.VISIBLE
                 },
-            ) { success, linkUserResponse, message ->
-                if (success) {
-                    TerraPay.launchTerraPaySDK(this, linkUserResponse)
+            ) {result ->
+                findViewById<ProgressBar>(R.id.progress).visibility= View.GONE
+                when (result) {
+                    is TerraPayResult.Success -> {
+                        TerraPayClient.launchTerraPaySDK(this)
+                    }
+                    is TerraPayResult.Cancelled -> {
+                        showDialog(this, "User cancelled:", result.message)
+                    }
+                    is TerraPayResult.Error -> {
+                        showDialog(this, "Error:", result.error.message ?: "Unknown error")
+                    }
+
                 }
             }
         }
+    }
+    fun showDialog(context: Context, title: String, message: String) {
+        AlertDialog.Builder(context)
+            .setTitle(title)
+            .setMessage(message)
+            .setPositiveButton("OK", null)
+            .show()
     }
 }
