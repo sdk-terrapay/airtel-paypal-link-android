@@ -78,6 +78,7 @@ withdrawal flows with configurable UI elements like wallet branding and color th
 @param dialCode - Must match the pattern ^\+\d+$
 @param countryCode - Must be a valid ISO 3166-1 alpha-2 country code
 @param msisdn - Must contain only digits; length validated against country-specific rules
+@param subscriberName - Must not be empty
 @param email - Must be a valid email address when not empty
 @param currency - Must be a valid ISO 4217 currency code
 @param primaryColor-	Must be a valid 6-digit hex code (e.g., EC1B24)
@@ -99,6 +100,7 @@ if (showBottomSheet) {
       dialCode = "+254",
       countryCode = "KE",
       msisdn = "783453672",
+      subscriberName = "Gajendra",
       currency = "KES",
       email = "gajendra@gmail.com",
       primaryColor = "EC1B24",
@@ -150,6 +152,7 @@ val config =TerraPayConfig(
     dialCode = "+254",
     countryCode = "KE",
     msisdn = "783453672",
+    subscriberName = 'Gajendra'
     currency = "KES",
     email = "gajendra@gmail.com",
     primaryColor = "EC1B24",
